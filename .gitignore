@@ -1,0 +1,5 @@
+downloads/
+node_modules/
+package-lock.json
+src/puppteer.js
+ani-cli
