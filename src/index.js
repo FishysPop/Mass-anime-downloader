@@ -159,7 +159,7 @@ rl.question('Enter the search keyword: ', async (searchKeyword) => {
         resolvedLinkLists = resolvedLinkLists.filter(link => link !== undefined);
         const qualitylink = selectQuality(resolvedLinkLists, quality)
         const sanitizeFolderName = (name) => {
-          return name.replace(/[<>:"/\\|?*]/g, '_');
+          return name.replace(/[<>:"/.\\|?*]/g, '_');
         };
       
       const MAX_DOWNLOAD_ATTEMPTS = 0;
@@ -200,7 +200,6 @@ rl.question('Enter the search keyword: ', async (searchKeyword) => {
                   console.error('Download failed or file does not exist.');
               }
           } else {
-            console.log(fileUrl)
             let lastUpdate = Date.now();
             const filePath = path.join(animeFolderPath, `${animeName}_EP${currentEpisode}.mp4`);
               const writer = fs.createWriteStream(filePath);
