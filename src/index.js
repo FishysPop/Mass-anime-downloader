@@ -6,7 +6,14 @@ const readline = require('readline');
 const ffmpeg = require('fluent-ffmpeg');
 const probe = promisify(ffmpeg.ffprobe);
 
+const search = require('./services/search')
+const animeInfo = require('./services/animeInfo')
 
+const providerInit = require('./processEpisode/providerInit')
+const decryptAllAnime = require('./processEpisode/decryptAllAnime')
+const getLinks = require('./processEpisode/getLinks');
+
+const m3u8Extractor = require('./extractors/m3u8')
 
 
 const aniurl = 'https://allanime.to'
@@ -15,13 +22,25 @@ const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
+const headers = {
+  'Accept': '*/*',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Origin': aniurl,
+  'Referer': aniurl,
+  'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+  'Sec-Ch-Ua-Mobile': '?0',
+  'Sec-Ch-Ua-Platform': '"Windows"',
+  'Sec-Fetch-Dest': 'empty',
+  'Sec-Fetch-Mode': 'cors',
+  'Sec-Fetch-Site': 'cross-site',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+};
 
 rl.question('Enter the search keyword: ', async (searchKeyword) => {
-    rl.question('Enter the episode range (e.g., 4-6): ', async (episodes) => {
-      rl.question('Enter the translation type (sub or dub): ', async (translationType) => {
-        rl.close();
+  rl.question('Enter the translation type (sub or dub): ', async (translationType) => {
 
-        const Userproviders = [1, 2, 3, 4, 5];
+        const Userproviders = [1,2,3,4,5];
         const quality = 'best';
 //1 wixmp
 //2 dropbox
@@ -29,45 +48,10 @@ rl.question('Enter the search keyword: ', async (searchKeyword) => {
 //4 sharepoint
 //5 gogoanime
 
-const headers = {
-    'Accept': '*/*',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Origin': aniurl,
-    'Referer': aniurl,
-    'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-    'Sec-Ch-Ua-Mobile': '?0',
-    'Sec-Ch-Ua-Platform': '"Windows"',
-    'Sec-Fetch-Dest': 'empty',
-    'Sec-Fetch-Mode': 'cors',
-    'Sec-Fetch-Site': 'cross-site',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-};
-const test = "true"
-if(test === "true") { 
 (async () => {
   //search
     try {
-        const searchResponse = await axios.get(aniapi, {
-            headers: headers,
-            params: {
-                variables: JSON.stringify({
-                    search: {
-                        query: searchKeyword
-                    },
-                    limit: 26,
-                    page: 1,
-                    translationType: translationType,
-                    countryOrigin: 'JP'
-                }),
-                extensions: JSON.stringify({
-                    persistedQuery: {
-                        version: 1,
-                        sha256Hash: '06327bc10dd682e1ee7e07b6db9c16e9ad2fd56c1b769e47513128cd5c9fc77a'
-                    }
-                })
-            }
-        });
+      const searchResponse = await search(searchKeyword, translationType);
  
   console.log("Found result for:",searchResponse.data.data.shows.edges[0].name)
   if(translationType === 'sub') {
@@ -77,24 +61,32 @@ if(test === "true") {
     console.log("Episodes:",searchResponse.data.data.shows.edges[0].availableEpisodes.dub)
 
   }
+  rl.question('Enter the episode number or range (e.g.: 4-6): ', async (episodes) => {
+    rl.close();
+
   const showId = searchResponse.data.data.shows.edges[0]._id
   function processEpisodeRange(episodes) {
-    const [start, end] = episodes.split('-').map(Number);
-    const episodeList = [];
-    
-    for (let i = start; i <= end; i++) {
-      episodeList.push(i.toString());
+    if (episodes.includes('-')) {
+        const [start, end] = episodes.split('-').map(Number);
+        const episodeList = [];
+        
+        for (let i = start; i <= end; i++) {
+            episodeList.push(i.toString());
+        }
+        
+        return episodeList;
+    } else {
+        return [episodes]; 
     }
-    
-    return episodeList;
-  }
+}
   
   const episodeArray = processEpisodeRange(episodes);
+  const episodes2 = [...episodeArray]
   
   async function processEpisode() {
     if (episodeArray.length > 0) {
+      const currentIndex = episodes2.length - episodeArray.length;
       const currentEpisode = episodeArray.shift();
-
       const queryVariables = {
         showId,
         translationType: translationType,
@@ -108,28 +100,8 @@ if(test === "true") {
       };
 
       try {
-        //anime info
-        const response = await axios.get(aniapi, {
-          params: { variables: JSON.stringify(queryVariables), extensions: JSON.stringify(extensions) },
-          headers: {
-            accept: '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'cache-control': 'no-cache',
-            pragma: 'no-cache',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'cross-site',
-            Referer: 'https://youtu-chan.com/',
-            'Referrer-Policy': 'strict-origin-when-cross-origin',
-          },
-        });
-    
-    
-    
-    
+    const response = await animeInfo(queryVariables,extensions)
+
       const data = response.data
       const resp = data?.data?.episode?.sourceUrls?.map(url => `${url.sourceName} : ${url.sourceUrl}`).join('\n');
       if (!resp) {
@@ -138,189 +110,120 @@ if(test === "true") {
       }
     
       let providerName;
-      async function generateLink(providers) {
+      async function generateLink(providers, resp) {
         let providerId;
         switch (providers) {
             case 1:
-                providerId = providerInit("wixmp", "Default");
+                providerId = providerInit("Default", resp);
+                providerName = 'wixmp'
                 break;
             case 2:
-                providerId = providerInit("dropbox", "Sak");
+                providerId = providerInit("Sak", resp);
+                providerName = 'dropbox'
                 break;
             case 3:
-                providerId = providerInit("wetransfer", "Kir");
+                providerId = providerInit("Kir", resp);
+                providerName = 'wetransfer'
                 break;
             case 4:
-                providerId = providerInit("sharepoint", "S-mp4");
+                providerId = providerInit("S-mp4", resp);
+                providerName = 'sharepoint'
                 break;
                 default:
-                  providerId = providerInit("gogoanime", "Luf-mp4");
+                  providerId = providerInit("Luf-mp4", resp);
+                  providerName = 'gogoanime'
                   break;
               }
             
               if (!providerId) {
-                console.log(`No link found for ${providerName}`);
-                return [];
+              //  console.log(`No link found for ${providerName}`);
+                return;
               }
             
               providerId = decryptAllAnime(providerId);
               providerId = providerId.replace(/\/clock/g, '/clock.json');
               if (providerId) {
                 try {
-                  const links = await getLinks(providerId); // Wait for getLinks to complete
-                  return links || [];
+                  const links = await getLinks(providerId); 
+                  return links
                 } catch (error) {
                   console.error('Error fetching links:', error);
-                  return [];
+                  return
                 }
               }
-            
-              return [];
-            
-    
-    
-    
-    function providerInit(provider_name, regex) {
-      const lines = resp.split('\n');
-      providerName = provider_name
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const matches = line.match(RegExp(regex));
-    
-      if (matches) {
-        providerId = line.split(':')[1].trim();
-        providerId = providerId.replace(/-/g, '');
-        break; 
-      }
-    }
-    return providerId
-    }
-    
-    function decryptAllAnime(input) {
-      let decryptedString = '';
-      const hexValues = input.match(/.{1,2}/g) || []; 
-    
-      for (let i = 0; i < hexValues.length; i++) {
-        const hex = hexValues[i];
-        const dec = parseInt(hex, 16); 
-        const xor = dec ^ 56; 
-        const oct = xor.toString(8).padStart(3, '0'); 
-        decryptedString += String.fromCharCode(parseInt(oct, 8));
-      }
-    
-      return decryptedString;
-    }
-    
-    function decryptAllAnime(input) {
-      const hexValues = input.match(/.{1,2}/g) || [];
-      let result = '';
-      hexValues.forEach(hex => {
-          const dec = parseInt(hex, 16);
-          const xor = dec ^ 56;
-          const oct = xor.toString(8).padStart(3, '0');
-          result += String.fromCharCode(parseInt(oct, 8));
-      });
-      return result;
-    }
-    
-    async function getLinks(provider_id) {
-      try {
-      const response2 = await axios.get(`https://embed.ssbcontent.site${provider_id}`, {
-        headers: {
-          'User-Agent': headers.User_Agent
-        }
-      })
-      let episodeLink = response2.data.links[0].link;
-      if (episodeLink.includes('repackager.wixmp.com')) {
-        const matches = episodeLink.match(/repackager\.wixmp\.com\/([^\/]+)\/mp4\/file\.mp4\.urlset/);
-        if (matches && matches.length > 1) {
-            const extractLink = matches[1];
-    
-            const regexResult = episodeLink.match(/.*,([^/]*),\/mp4.*/g);
-            if (regexResult) {
-                regexResult.forEach(match => {
-                    const j = match.split(',')[0];
-                    console.log(`${j} >${extractLink}`);
-                    linkList.push(extractLink);
-                });
-            }
-        }
-    
-      } else if (episodeLink.includes('vipanicdn') || episodeLink.includes('anifastcdn')) {
-        if (episodeLink.includes('original.m3u')) {
-          linkList.push(episodeLink)
-        } else {
-          let extractLink = episodeLink.split('>')[0];
-          let relativeLink = extractLink.replace(/[^/]*$/, '');
-          let curlResponse = episodeLink;
-          let processedData = curlResponse.replace(/^#.*x/g, '').replace(/,.*/g, 'p');
-          let formattedData = processedData.split('\n').map(item => item.replace('>', `>${relativeLink}`)).sort().reverse().join('\n');
-          linkList.push(formattedData)
-        }
-      } else {
-        if (episodeLink) {
-          linkList.push(episodeLink)
-        }
-      }
-    
-    
-    
-    
-    
-    
-        }catch(error) {
-          console.error('Error fetching data:', error);
-        };
-    
-      };
-    
     };
     
-    let linkList = [];
     
-    Promise.all(Userproviders.map(provider => generateLink(provider)))
+    Promise.all(Userproviders.map(provider => generateLink(provider, resp)))
       .then(resolvedLinkLists => {
-        const qualitylink = selectQuality(linkList, quality)
+        resolvedLinkLists = resolvedLinkLists.filter(link => link !== undefined);
+        const qualitylink = selectQuality(resolvedLinkLists, quality)
         const sanitizeFolderName = (name) => {
-          // Remove characters that might cause issues in folder names
           return name.replace(/[<>:"/\\|?*]/g, '_');
         };
       
-      const MAX_DOWNLOAD_ATTEMPTS = 3;
+      const MAX_DOWNLOAD_ATTEMPTS = 0;
       let retryCount = 0;
-      const MAX_DOWNLOAD_TIME = 5 * 60 * 1000;
+      const MAX_DOWNLOAD_TIME = 60 * 60 * 1000;
       
       const downloadFile = async () => {
         let filePath;
         const fileUrl = qualitylink;
         const currentDir = __dirname;
         const animeName = sanitizeFolderName(searchResponse.data.data.shows.edges[0].name);
-        console.log(`Starting download for :${currentEpisode}`)
         const parentDir = path.dirname(currentDir);
         const downloadsFolderPath = path.join(parentDir, 'downloads');
         const animeFolderPath = path.join(downloadsFolderPath, animeName);
         let downloadStarted = false;
     
         try {
-            // Ensure the 'downloads' folder exists, if not, create it
-            if (!fs.existsSync(downloadsFolderPath)) {
-                fs.mkdirSync(downloadsFolderPath);
-            }
-    
-            // Check if the anime-specific folder exists
-            if (!fs.existsSync(animeFolderPath)) {
-                fs.mkdirSync(animeFolderPath, { recursive: true });
-            }
+          if (!fs.existsSync(downloadsFolderPath)) {
+              fs.mkdirSync(downloadsFolderPath);
+          }
       
-              const filePath = path.join(animeFolderPath, `${animeName}_EP${currentEpisode}.mp4`);
+          if (!fs.existsSync(animeFolderPath)) {
+              fs.mkdirSync(animeFolderPath, { recursive: true });
+          }
+      
+          if (fileUrl.endsWith('.m3u8')) {
+              // Handle .m3u8 file processing
+              const downloadedFilePath = await m3u8Extractor(fileUrl, animeFolderPath, animeName, currentEpisode, currentIndex);
+              if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
+                  const isPlayable = await checkMP4FilePlayable(downloadedFilePath);
+                  if (isPlayable) {
+                      console.log('File downloaded:', downloadedFilePath);
+                      return downloadedFilePath;
+                  } else {
+                      console.error('Downloaded file is not playable:', downloadedFilePath);
+                  }
+              } else {
+                  console.error('Download failed or file does not exist.');
+              }
+          } else {
+            console.log(fileUrl)
+            let lastUpdate = Date.now();
+            const filePath = path.join(animeFolderPath, `${animeName}_EP${currentEpisode}.mp4`);
               const writer = fs.createWriteStream(filePath);
-              console.log(`${currentEpisode} link :${fileUrl}`)
               const response = await axios({
                   method: 'GET',
                   url: fileUrl,
                   responseType: 'stream',
+                  onDownloadProgress: function(progressEvent) {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    const now = Date.now();
+
+                    if (now - lastUpdate >= 600) {
+                      lastUpdate = now;
+                      
+                      process.stdout.moveCursor(-1000, `-${currentIndex + 1}`);
+              
+                      process.stdout.clearLine(1);
+                      process.stdout.write(`Progress for EP${currentEpisode}: ${(percentCompleted || 0).toFixed(0)}%`);
+                      process.stdout.moveCursor(-1000, 1000);
+                    }
+                  }
               });
+              console.log(`Progress for EP${currentEpisode}: 0%`)
       
               response.data.pipe(writer);
               downloadStarted = true;
@@ -344,11 +247,15 @@ if(test === "true") {
               });
       
               const downloadedFilePath = await Promise.race([downloadPromise, timeoutPromise]);
-
+      
               if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
                   const isPlayable = await checkMP4FilePlayable(downloadedFilePath);
                   if (isPlayable) {
-                      console.log('File downloaded:', downloadedFilePath);
+                    process.stdout.moveCursor(-1000, `-${currentIndex + 1}`);
+                
+                    process.stdout.clearLine(1);
+                    process.stdout.write(`File downloaded: ${downloadedFilePath}`);
+                    process.stdout.moveCursor(-1000, 1000);
                       return downloadedFilePath;
                   } else {
                       console.error('Downloaded file is not playable:', downloadedFilePath);
@@ -356,9 +263,11 @@ if(test === "true") {
               } else {
                   console.error('Download failed or file does not exist.');
               }
-          } catch (error) {
-              console.error('Error downloading or probing the file:', currentEpisode);
           }
+      } catch (error) {
+          console.error('Error downloading or probing the file:', currentEpisode);
+          console.log(error)
+      }
       
           // Retry download logic with delay
           if (retryCount < MAX_DOWNLOAD_ATTEMPTS) {
@@ -395,6 +304,7 @@ if(test === "true") {
             return true; // File is playable
         } catch (error) {
             console.error('Error while probing file:', );
+            console.log(error)
             return false; // File is not playable
         }
     };
@@ -418,37 +328,22 @@ if(test === "true") {
                 return result
                 break;
         }
-    
-        if (!result) {
-            console.log('Specified quality not found, defaulting to best');
-            result = links[0];
-        }
-    
-        return result.split('>')[1];
     }
-    
-    
-    
+
         } catch (error) {
             console.error(error);
         }
-  
-
-
-
-
-
       processEpisode();
     }
   }
   
   processEpisode();
-
+});
   } catch (error) {
     console.error(error);
   }
+  
 })();
-}
-});
+
 });
 });
