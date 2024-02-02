@@ -250,11 +250,11 @@ rl.question('Enter the search keyword: ', async (searchKeyword) => {
               if (downloadedFilePath && fs.existsSync(downloadedFilePath)) {
                   const isPlayable = await checkMP4FilePlayable(downloadedFilePath);
                   if (isPlayable) {
-                    process.stdout.moveCursor(-1000, `-${currentIndex + 1}`);
+                    process.stdout.moveCursor(-1, `-${currentIndex + 1}`);
                 
                     process.stdout.clearLine(1);
                     process.stdout.write(`File downloaded: ${downloadedFilePath}`);
-                    process.stdout.moveCursor(-1000, 1000);
+                    process.stdout.moveCursor(-30, `${currentIndex + 1}`);
                       return downloadedFilePath;
                   } else {
                       console.error('Downloaded file is not playable:', downloadedFilePath);
