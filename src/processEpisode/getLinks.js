@@ -16,7 +16,6 @@ async function getLinks(provider_id) {
           if (regexResult) {
               regexResult.forEach(match => {
                   const j = match.split(',')[0];
-                  console.log(`${j} >${extractLink}`);
                   return extractLink
               });
           }
@@ -38,12 +37,6 @@ async function getLinks(provider_id) {
         return episodeLink
       }
     }
-  
-  
-  
-  
-  
-  
       }catch(error) {
         console.error('Error fetching data:', error);
       };

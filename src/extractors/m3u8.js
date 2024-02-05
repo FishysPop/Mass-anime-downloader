@@ -1,14 +1,8 @@
 const axios = require('axios');
 const path = require('path');
 let ffmpeg = require("fluent-ffmpeg");
-const readline = require('readline');
 
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
-
-async function m3u8Extractor(fileUrl, animeFolderPath, animeName, currentEpisode, currentIndex) {
+async function m3u8Extractor(fileUrl, animeFolderPath, animeName, currentEpisode, currentIndex,) {
     try {
         const response = await axios.get(fileUrl); // Fetch the .m3u8 file
         const m3u8Content = response.data;
@@ -49,8 +43,6 @@ async function m3u8Extractor(fileUrl, animeFolderPath, animeName, currentEpisode
                 .on('progress', function(progress) {
                     const now = Date.now();
                     if (now - lastUpdate >= 600) {
-                        const cursor = rl.getCursorPos()
-                        console.log(cursor)
                         lastUpdate = now
                         process.stdout.moveCursor(-1000, `-${currentIndex + 1}`);
                 
@@ -64,8 +56,6 @@ async function m3u8Extractor(fileUrl, animeFolderPath, animeName, currentEpisode
                 .output(outputFilePath)
                 .run();
         });
-        
-      
 
     } catch (error) {
         console.error('Error extracting or converting m3u8 segment:', error);

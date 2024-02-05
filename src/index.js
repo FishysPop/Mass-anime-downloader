@@ -20,7 +20,8 @@ const aniurl = 'https://allanime.to'
 const aniapi = 'https://api.allanime.day/api'
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
+  terminal: false
 });
 const headers = {
   'Accept': '*/*',
@@ -36,9 +37,14 @@ const headers = {
   'Sec-Fetch-Site': 'cross-site',
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 };
+function askQuestion(question) {
+  return new Promise((resolve, reject) => {
+    rl.question(question, (answer) => {
+      resolve(answer);
+    });
+  });
+}
 
-rl.question('Enter the search keyword: ', async (searchKeyword) => {
-  rl.question('Enter the translation type (sub or dub): ', async (translationType) => {
 
         const Userproviders = [1,2,3,4,5];
         const quality = 'best';
@@ -51,6 +57,8 @@ rl.question('Enter the search keyword: ', async (searchKeyword) => {
 (async () => {
   //search
     try {
+      const searchKeyword = await askQuestion('Enter the search keyword: ');
+      const translationType = await askQuestion('Enter the translation type (sub or dub): ');
       const searchResponse = await search(searchKeyword, translationType);
  
   console.log("Found result for:",searchResponse.data.data.shows.edges[0].name)
@@ -302,8 +310,7 @@ rl.question('Enter the search keyword: ', async (searchKeyword) => {
             // Check the 'format' property or any other property as needed to validate the file
             return true; // File is playable
         } catch (error) {
-            console.error('Error while probing file:', );
-            console.log(error)
+            console.error('Error while probing file:', error);
             return false; // File is not playable
         }
     };
@@ -335,14 +342,12 @@ rl.question('Enter the search keyword: ', async (searchKeyword) => {
       processEpisode();
     }
   }
-  
-  processEpisode();
+    processEpisode();
+
 });
+
   } catch (error) {
     console.error(error);
   }
   
 })();
-
-});
-});
