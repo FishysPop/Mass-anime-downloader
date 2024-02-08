@@ -10,7 +10,7 @@ if %errorlevel% neq 0 (
 )
 echo Node is Installed
 
-
+call npm i
 
 
 REM Run npm run start

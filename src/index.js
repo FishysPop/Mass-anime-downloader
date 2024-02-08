@@ -53,6 +53,8 @@ function askQuestion(question) {
 //3 wetranfer
 //4 sharepoint
 //5 gogoanime
+main()
+function main() {
 
 (async () => {
   //search
@@ -60,6 +62,7 @@ function askQuestion(question) {
       const searchKeyword = await askQuestion('Enter the search keyword: ');
       const translationType = await askQuestion('Enter the translation type (sub or dub): ');
       const searchResponse = await search(searchKeyword, translationType);
+
  
   console.log("Found result for:",searchResponse.data.data.shows.edges[0].name)
   if(translationType === 'sub') {
@@ -347,7 +350,15 @@ function askQuestion(question) {
 });
 
   } catch (error) {
-    console.error(error);
+    if (error.response && error.response.status === 400) {
+      console.log("No results found.")
+      main()
+      return;
+    } else {
+      console.error(error);
+
+    }
   }
   
 })();
+}
