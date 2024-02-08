@@ -1,7 +1,12 @@
 # mass-anime-downloader
 Download a hole season of anime 
-wip
+Currently there is no way to selecting quality, I do plan on adding that later, also for the progress it only shows progress depending on the size of your terminal, I would only recommend downloading 20 episodes at a time but it would probably work with more. also if you want to use a different file server you can change the Userproviders varible in the index file.
 
+## Usage 
+```
+Either run the start.bat file or 
+npm run start
+```
 This project would be impossible without the scraper from https://github.com/pystardust/ani-cli massive thanks to them
 
 Disclaimer
