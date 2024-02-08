@@ -10,7 +10,7 @@ npm run start
 ```
 This project would be impossible without the scraper from https://github.com/pystardust/ani-cli massive thanks to them
 
-##Disclaimer
+## Disclaimer
 
 This project: mass-anime-downloader
 
