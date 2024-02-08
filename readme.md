@@ -1,5 +1,6 @@
 # mass-anime-downloader
 Download a hole season of anime 
+
 Currently there is no way to selecting quality, I do plan on adding that later, also for the progress it only shows progress depending on the size of your terminal, I would only recommend downloading 20 episodes at a time but it would probably work with more. also if you want to use a different file server you can change the Userproviders varible in the index file.
 
 ## Usage 
@@ -9,7 +10,8 @@ npm run start
 ```
 This project would be impossible without the scraper from https://github.com/pystardust/ani-cli massive thanks to them
 
-Disclaimer
+##Disclaimer
+
 This project: mass-anime-downloader
 
 The core aim of this project is to co-relate automation and efficiency to extract what is provided to a user on the internet. All content available through the project is hosted by external non-affiliated sources.
