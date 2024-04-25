@@ -1,12 +1,15 @@
 const axios = require('axios');
 async function getLinks(provider_id) {
     try {
-    const response2 = await axios.get(`https://embed.ssbcontent.site${provider_id}`, {
+
+        
+    const response2 = await axios.get(`https://allanime.day${provider_id}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     })
     let episodeLink = response2.data.links[0].link;
+    if(!episodeLink) return console.log("failed to get links")
     if (episodeLink.includes('repackager.wixmp.com')) {
       const matches = episodeLink.match(/repackager\.wixmp\.com\/([^\/]+)\/mp4\/file\.mp4\.urlset/);
       if (matches && matches.length > 1) {
