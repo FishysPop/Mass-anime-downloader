@@ -62,20 +62,40 @@ function main() {
       const searchKeyword = await askQuestion('Enter the search keyword: ');
       const translationType = await askQuestion('Enter the translation type (sub or dub): ');
       const searchResponse = await search(searchKeyword, translationType);
-
- 
-  console.log("Found result for:",searchResponse.data.data.shows.edges[0].name)
+  let AnimeNumber = 0
+  if (searchResponse.data.data.shows.edges.length === 0) return console.log("No results found");
+ if (searchResponse.data.data.shows.edges.length === 1) {
+  console.log("Found result for:",searchResponse.data.data.shows.edges[0].englishName)
+} else {
+  const shows = searchResponse.data.data.shows.edges;
+  const maxShows = Math.min(shows.length, 10); // Limit to a maximum of 10 shows
+  
+  for (let i = 0; i < maxShows; i++) {
+      const show = shows[i];
+      const { _id, englishName, episodeCount } = show;
+      const url = `https://allmanga.to/bangumi/${_id}`;
+      const showNumber = i + 1;
+      
+      // Format the display text to visually resemble a hyperlink
+      const formattedText = `\u001b[4m${englishName}\u001b[0m`; // Underline the English name
+  
+      console.log(`${showNumber}. ${formattedText} - Episodes: ${episodeCount || 'Unknown'}`);
+      console.log(`   ${url}`); // Display the URL separately for reference
+  }
+   AnimeNumber = await askQuestion('Multiple results found, enter the number: ') -1;
+}
+  
   if(translationType === 'sub') {
-    console.log("Episodes:",searchResponse.data.data.shows.edges[0].availableEpisodes.sub)
+    console.log("Episodes:",searchResponse.data.data.shows.edges[AnimeNumber].availableEpisodes.sub)
   }
    else {
-    console.log("Episodes:",searchResponse.data.data.shows.edges[0].availableEpisodes.dub)
+    console.log("Episodes:",searchResponse.data.data.shows.edges[AnimeNumber].availableEpisodes.dub)
 
   }
   rl.question('Enter the episode number or range (e.g.: 4-6): ', async (episodes) => {
     rl.close();
 
-  const showId = searchResponse.data.data.shows.edges[0]._id
+  const showId = searchResponse.data.data.shows.edges[AnimeNumber]._id
   function processEpisodeRange(episodes) {
     if (episodes.includes('-')) {
         const [start, end] = episodes.split('-').map(Number);
@@ -181,7 +201,7 @@ function main() {
         let filePath;
         const fileUrl = qualitylink;
         const currentDir = __dirname;
-        const animeName = sanitizeFolderName(searchResponse.data.data.shows.edges[0].name);
+        const animeName = sanitizeFolderName(searchResponse.data.data.shows.edges[AnimeNumber].englishName);
         const parentDir = path.dirname(currentDir);
         const downloadsFolderPath = path.join(parentDir, 'downloads');
         const animeFolderPath = path.join(downloadsFolderPath, animeName);
